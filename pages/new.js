@@ -20,7 +20,7 @@ const New = () => {
       }
     `;
     try {
-      await graphQLClient.request(query, { task });
+      await graphQLClient(token).request(query, { task });
       Router.push('/');
     } catch (error) {
       console.error(error);

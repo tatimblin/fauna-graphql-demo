@@ -9,7 +9,7 @@ const Todo = () => {
   const router = useRouter();
   const { id } = router.query;
 
-  const fetcher = async () => await graphQLClient.request(query, { id });
+  const fetcher = async () => await graphQLClient(token).request(query, { id });
 
   const query = gql`
     query FindATodoByID($id: ID!) {
@@ -29,7 +29,7 @@ const Todo = () => {
       <h1>Edit Todo</h1>
 
       {data ? (
-        <EditForm defaultValues={data.findTodoByID} id={id} />
+        <EditForm defaultValues={data.findTodoByID} id={id} token={token} />
       ) : (
         <div>loading...</div>
       )}
