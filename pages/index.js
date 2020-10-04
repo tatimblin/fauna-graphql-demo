@@ -1,12 +1,12 @@
+import Link from 'next/link';
 import useSWR from 'swr';
 import { gql } from 'graphql-request';
-import Link from 'next/link';
 import Layout from '../components/layout';
 import styles from '../styles/Home.module.css';
 import { graphQLClient } from '../utils/graphql-client';
 import { getAuthCookie } from '../utils/auth-cookies';
 
-const Home = () => {
+const Home = ({ token }) => {
   const fetcher = async (query) => await graphQLClient(token).request(query);
 
   const { data, error, mutate } = useSWR(
@@ -24,8 +24,10 @@ const Home = () => {
     fetcher
   );
 
+  console.log({data, error, mutate});
+
   const toggleTodo = async (id, completed) => {
-    const query = gql`
+    const mutation = gql`
       mutation PartialUpdateTodo($id: ID!, $completed: Boolean!) {
         partialUpdateTodo(id: $id, data: { completed: $completed }) {
           _id
@@ -37,42 +39,57 @@ const Home = () => {
     const variables = {
       id,
       completed: !completed,
-    }
+    };
 
     try {
       await graphQLClient(token)
         .setHeader('X-Schema-Preview', 'partial-update-mutation')
-        .request(query);
-      mutate();
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  const deleteATodo = async (id) => {
-    const query = gql`
-      mutation DeleteATodo($id: ID!) {
-        deleteTodo(id: $id) {
-          _id
-        }
-      }
-    `;
-    try {
-      await graphQLClient(token).request(query, { id });
+        .request(mutation, variables);
       mutate();
     } catch (error) {
       console.error(error);
     }
   };
 
-  if (error) return <div>failed to load</div>;
+  const deleteATodo = async (id) => {
+    const mutation = gql`
+      mutation DeleteATodo($id: ID!) {
+        deleteTodo(id: $id) {
+          _id
+        }
+      }
+    `;
+
+    try {
+      await graphQLClient(token).request(mutation, { id });
+      mutate();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  if (error) {
+    return (
+      <Layout>
+        <div>failed to load</div>
+      </Layout>
+    );
+  }
+
+  if (!data) {
+    return (
+      <Layout>
+        <div>loading...</div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <h1>Next Fauna GraphQL CRUD</h1>
 
       <Link href="/new">
-        <a>Create new Todo</a>
+        <a>Create New Todo</a>
       </Link>
 
       {data ? (
@@ -94,7 +111,10 @@ const Home = () => {
                   <a>Edit</a>
                 </Link>
               </span>
-              <span onClick={() => deleteATodo(todo._id)} className={styles.delete}>
+              <span
+                onClick={() => deleteATodo(todo._id)}
+                className={styles.delete}
+              >
                 Delete
               </span>
             </li>
@@ -109,7 +129,7 @@ const Home = () => {
 
 export async function getServerSideProps(ctx) {
   const token = getAuthCookie(ctx.req);
-  return { props: { token: token || null }};
+  return { props: { token: token || null } };
 }
 
 export default Home;
